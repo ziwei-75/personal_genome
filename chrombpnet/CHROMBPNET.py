@@ -13,7 +13,7 @@ logging.getLogger('matplotlib.font_manager').disabled = True
 
 def main():
 	args = parsers.read_parser()
-	
+	print(args)
 	if args.cmd == "pipeline" or args.cmd == "train":
 		os.makedirs(os.path.join(args.output_dir,"logs"), exist_ok=False)
 		os.makedirs(os.path.join(args.output_dir,"auxiliary"), exist_ok=False)
