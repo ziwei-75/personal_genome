@@ -24,7 +24,7 @@ class ChromBPNetBatchGenerator(keras.utils.Sequence):
     every epoch, and calls bias model on it, whose outputs (bias profile logits 
     and bias logcounts) are fed as input to the chrombpnet model.
     """
-    def __init__(self, peak_regions, nonpeak_regions, genome_fasta, batch_size, inputlen, outputlen, max_jitter, negative_sampling_ratio, cts_bw_file, add_revcomp, return_coords, shuffle_at_epoch_start):
+    def __init__(self, peak_regions, nonpeak_regions, genome_fasta, batch_size, inputlen, outputlen, max_jitter, negative_sampling_ratio, cts_bw_file, add_revcomp, return_coords, shuffle_at_epoch_start, variant_file):
         """
         seqs: B x L' x 4
         cts: B x M'
@@ -45,6 +45,7 @@ class ChromBPNetBatchGenerator(keras.utils.Sequence):
         self.add_revcomp = add_revcomp
         self.return_coords = return_coords
         self.shuffle_at_epoch_start = shuffle_at_epoch_start
+        self.variant_file = variant_file
 
 
         # random crop training data to the desired sizes, revcomp augmentation
