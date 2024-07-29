@@ -55,6 +55,46 @@ def get_bed_regions_for_fold_split(bed_regions, mode, splits_dict):
     print("got split:"+str(mode)+" for bed regions:"+str(bed_regions_to_keep.shape))
     return bed_regions_to_keep, chroms_to_keep
 
+# def initialize_generators(args, mode, parameters, return_coords):
+
+#     # defaults
+#     peak_regions=None
+#     nonpeak_regions=None
+
+#     # get only those peak/non peak regions corresponding to train/valid/test set
+#     splits_dict=json.load(open(args.chr_fold_path))
+
+#     if args.peaks.lower() != "none":
+#         print("loading peaks...")
+#         peak_regions=pd.read_csv(args.peaks,header=None,sep='\t',names=NARROWPEAK_SCHEMA)
+#         peak_regions, chroms=get_bed_regions_for_fold_split(peak_regions, mode, splits_dict)
+
+#     if args.nonpeaks.lower() != "none":
+#         print("loading nonpeaks...")
+#         nonpeak_regions=pd.read_csv(args.nonpeaks,header=None,sep='\t',names=NARROWPEAK_SCHEMA)
+#         nonpeak_regions, chroms=get_bed_regions_for_fold_split(nonpeak_regions, mode, splits_dict) 
+
+#     inputlen, outputlen, \
+#     nonpeak_regions, negative_sampling_ratio, \
+#     max_jitter, add_revcomp, shuffle_at_epoch_start  =  fetch_data_and_model_params_based_on_mode(mode, args, parameters, nonpeak_regions, peak_regions)
+#     generator=batchgen_generator.ChromBPNetBatchGenerator(
+#                                     peak_regions=peak_regions,
+#                                     nonpeak_regions=nonpeak_regions,
+#                                     genome_fasta=args.genome,
+#                                     batch_size=args.batch_size,
+#                                     inputlen=inputlen,                                        
+#                                     outputlen=outputlen,
+#                                     max_jitter=max_jitter,
+#                                     negative_sampling_ratio=negative_sampling_ratio,
+#                                     cts_bw_file=args.bigwig,
+#                                     add_revcomp=add_revcomp,
+#                                     return_coords=return_coords,
+#                                     shuffle_at_epoch_start=shuffle_at_epoch_start
+#                                     )
+    
+#     return generator
+
+
 def initialize_generators(args, mode, parameters, return_coords):
 
     # defaults
@@ -74,22 +114,45 @@ def initialize_generators(args, mode, parameters, return_coords):
         nonpeak_regions=pd.read_csv(args.nonpeaks,header=None,sep='\t',names=NARROWPEAK_SCHEMA)
         nonpeak_regions, chroms=get_bed_regions_for_fold_split(nonpeak_regions, mode, splits_dict) 
 
-    inputlen, outputlen, \
-    nonpeak_regions, negative_sampling_ratio, \
-    max_jitter, add_revcomp, shuffle_at_epoch_start  =  fetch_data_and_model_params_based_on_mode(mode, args, parameters, nonpeak_regions, peak_regions)
-    generator=batchgen_generator.ChromBPNetBatchGenerator(
-                                    peak_regions=peak_regions,
-                                    nonpeak_regions=nonpeak_regions,
-                                    genome_fasta=args.genome,
-                                    batch_size=args.batch_size,
-                                    inputlen=inputlen,                                        
-                                    outputlen=outputlen,
-                                    max_jitter=max_jitter,
-                                    negative_sampling_ratio=negative_sampling_ratio,
-                                    cts_bw_file=args.bigwig,
-                                    add_revcomp=add_revcomp,
-                                    return_coords=return_coords,
-                                    shuffle_at_epoch_start=shuffle_at_epoch_start
-                                    )
+    if args.vcf_file.lower() != "none":
+        print("loading with variants")
+        inputlen, outputlen, \
+        nonpeak_regions, negative_sampling_ratio, \
+        max_jitter, add_revcomp, shuffle_at_epoch_start  =  fetch_data_and_model_params_based_on_mode(mode, args, parameters, nonpeak_regions, peak_regions)
+        generator=batchgen_generator.ChromBPNetVariantGenerator(
+                                        peak_regions=peak_regions,
+                                        nonpeak_regions=nonpeak_regions,
+                                        genome_fasta=args.genome,
+                                        batch_size=args.batch_size,
+                                        inputlen=inputlen,                                        
+                                        outputlen=outputlen,
+                                        max_jitter=max_jitter,
+                                        negative_sampling_ratio=negative_sampling_ratio,
+                                        cts_bw_file=args.bigwig,
+                                        add_revcomp=add_revcomp,
+                                        return_coords=return_coords,
+                                        shuffle_at_epoch_start=shuffle_at_epoch_start,
+                                        vcf_file=args.vcf_file
+                                        )
+
+    else:
+        inputlen, outputlen, \
+        nonpeak_regions, negative_sampling_ratio, \
+        max_jitter, add_revcomp, shuffle_at_epoch_start  =  fetch_data_and_model_params_based_on_mode(mode, args, parameters, nonpeak_regions, peak_regions)
+        print("loading without variants")
+        generator=batchgen_generator.ChromBPNetBatchGenerator(
+                                        peak_regions=peak_regions,
+                                        nonpeak_regions=nonpeak_regions,
+                                        genome_fasta=args.genome,
+                                        batch_size=args.batch_size,
+                                        inputlen=inputlen,                                        
+                                        outputlen=outputlen,
+                                        max_jitter=max_jitter,
+                                        negative_sampling_ratio=negative_sampling_ratio,
+                                        cts_bw_file=args.bigwig,
+                                        add_revcomp=add_revcomp,
+                                        return_coords=return_coords,
+                                        shuffle_at_epoch_start=shuffle_at_epoch_start
+                                        )
     
     return generator
