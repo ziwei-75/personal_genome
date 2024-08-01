@@ -1,3 +1,4 @@
+LICENSE
 MANIFEST.in
 README.md
 requirements.txt
@@ -6,6 +7,7 @@ chrombpnet/CHROMBPNET.py
 chrombpnet/__init__.py
 chrombpnet/parsers.py
 chrombpnet/pipelines.py
+chrombpnet/train_chrombpnet.py
 chrombpnet.egg-info/PKG-INFO
 chrombpnet.egg-info/SOURCES.txt
 chrombpnet.egg-info/dependency_links.txt
@@ -16,6 +18,7 @@ chrombpnet.egg-info/top_level.txt
 chrombpnet/data/ATAC.ref.motifs.txt
 chrombpnet/data/DNASE.ref.motifs.txt
 chrombpnet/data/__init__.py
+chrombpnet/data/__init__.pyc
 chrombpnet/data/motif_to_pwm.ATAC.tsv
 chrombpnet/data/motif_to_pwm.DNASE.tsv
 chrombpnet/data/motif_to_pwm.TF.tsv

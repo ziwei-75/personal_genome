@@ -82,10 +82,10 @@ def main(args):
 
     # get model architecture to load
     model, architecture_module=get_model(args, parameters)
-    if args.load_pretrain:
-        assert hasattr(args, "pretrained_model")
-        print("loading pretrained model form %s"%args.pretrained_model)
-        model.load_weights(args.pretrained_model)
+    # if args.load_pretrain:
+    #     assert hasattr(args, "pretrained_model")
+    #     print("loading pretrained model form %s"%args.pretrained_model)
+    #     model.load_weights(args.pretrained_model)
 
     # initialize generators to load data
     train_generator = initializers.initialize_generators(args, "train", parameters, return_coords=False)

@@ -71,7 +71,7 @@ def get_seq_with_variants(peaks_df, genome, width,chromo_vcf_df):
                 assert len(second_hap_seq) == width
         first_vals.append(first_hap_seq.upper())
         second_vals.append(second_hap_seq.upper())
-
+    print("finish getting sequence with variants")
     first_vals = one_hot.dna_to_one_hot(first_vals)
     second_vals = one_hot.dna_to_one_hot(second_vals)
     vals = np.add(first_vals,second_vals)/2
@@ -165,7 +165,7 @@ def load_data(bed_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen,
     return (train_peaks_seqs, train_peaks_cts, train_peaks_coords,
             train_nonpeaks_seqs, train_nonpeaks_cts, train_nonpeaks_coords)
 
-def load_data_with_variants(bed_regions, nonpeak_regions, genome_fasta, cts_bw_file, inputlen, outputlen, max_jitter,vcf_file):
+def load_data_with_variants(bed_regions, nonpeak_regions, genome_fasta, inputlen, outputlen, max_jitter,sample_list,bigwig_list,peak_region_keep_idx,nonpeak_region_keep_idx):
     """
     Load sequences and corresponding base resolution counts for training, 
     validation regions in peaks and nonpeaks (2 x 2 x 2 = 8 matrices).
@@ -178,46 +178,88 @@ def load_data_with_variants(bed_regions, nonpeak_regions, genome_fasta, cts_bw_f
     If outliers is not None, removes training examples with counts > outlier%ile
     """
 
-    vcf_df=pd.read_csv(vcf_file,sep=',')
-    chromo_vcf_df = {}
-    chromo_list = set(vcf_df['CHROM'].values)
-    for chromo in chromo_list:
-        filtered_df = vcf_df[vcf_df['CHROM'] == chromo]
-        chromo_vcf_df[chromo] = filtered_df.reset_index()
-
-
-    cts_bw = pyBigWig.open(cts_bw_file)
-    genome = pyfaidx.Fasta(genome_fasta)
-
-    train_peaks_seqs=None
-    train_peaks_cts=None
-    train_peaks_coords=None
-    train_nonpeaks_seqs=None
-    train_nonpeaks_cts=None
-    train_nonpeaks_coords=None
-
-    if bed_regions is not None:
-        train_peaks_seqs, train_peaks_cts, train_peaks_coords = get_seq_cts_coords_with_variants(bed_regions,
-                                              genome,
-                                              cts_bw,
-                                              inputlen+2*max_jitter,
-                                              outputlen+2*max_jitter,
-                                              chromo_vcf_df=chromo_vcf_df,
-                                              peaks_bool=1)
-    
+    bed_regions = bed_regions.loc[peak_region_keep_idx]
     if nonpeak_regions is not None:
-        train_nonpeaks_seqs, train_nonpeaks_cts, train_nonpeaks_coords = get_seq_cts_coords_with_variants(nonpeak_regions,
-                                              genome,
-                                              cts_bw,
-                                              inputlen,
-                                              outputlen,
-                                              chromo_vcf_df=chromo_vcf_df,
-                                              peaks_bool=0)
+        nonpeak_regions = nonpeak_regions.loc[nonpeak_region_keep_idx]
+    genome = pyfaidx.Fasta(genome_fasta)
+    train_peaks_seqs=[]
+    train_peaks_cts=[]
+    train_peaks_coords=[]
+    train_nonpeaks_seqs=[]
+    train_nonpeaks_cts=[]
+    train_nonpeaks_coords=[]
 
+    assert len(sample_list) == len(bigwig_list)
+    for i in tqdm(range(len(sample_list))):
+        s = sample_list[i]
+        cts_bw_file = bigwig_list[i]
+        cts_bw = pyBigWig.open(cts_bw_file)
 
-
-    cts_bw.close()
+        if bed_regions is not None:
+            # sample_train_peaks_seqs, sample_train_peaks_cts, sample_train_peaks_coords = get_seq_cts_coords_with_variants(bed_regions,
+            #                                     genome,
+            #                                     cts_bw,
+            #                                     inputlen+2*max_jitter,
+            #                                     outputlen+2*max_jitter,
+            #                                     chromo_vcf_df=chromo_vcf_df,
+            #                                     peaks_bool=1)
+            # print("finish peak regions")
+            sample_train_peaks_seqs = np.load("/oak/stanford/groups/akundaje/ziwei75/african-omics/data/processed/%s/peak_seq.npz"%s)['arr_0']
+            print("/oak/stanford/groups/akundaje/ziwei75/african-omics/data/processed/%s/peak_seq.npz"%s)
+            sample_train_peaks_seqs = sample_train_peaks_seqs[peak_region_keep_idx]
+            sample_train_peaks_cts = get_cts(bed_regions, cts_bw, outputlen+2*max_jitter,)
+            sample_train_peaks_coords = get_coords(bed_regions, peaks_bool=1)
+            if max_jitter == 0:
+                center = sample_train_peaks_seqs.shape[1]//2
+                sample_train_peaks_seqs = sample_train_peaks_seqs[:,center-inputlen//2:center+inputlen//2,:]
+            
+            train_peaks_seqs += [sample_train_peaks_seqs]
+            train_peaks_cts += [sample_train_peaks_cts]        
+            train_peaks_coords += [sample_train_peaks_coords]
+        
+        if (nonpeak_regions is not None) and (nonpeak_region_keep_idx is not None):
+            # sample_train_nonpeaks_seqs, sample_train_nonpeaks_cts, sample_train_nonpeaks_coords = get_seq_cts_coords_with_variants(nonpeak_regions,
+            #                                     genome,
+            #                                     cts_bw,
+            #                                     inputlen,
+            #                                     outputlen,
+            #                                     chromo_vcf_df=chromo_vcf_df,
+            #                                     peaks_bool=0)
+            # print("finish nonpeak regions")
+            sample_train_nonpeaks_seqs = np.load("/oak/stanford/groups/akundaje/ziwei75/african-omics/data/processed/%s/nonpeak_seq.npz"%s)['arr_0']
+            print("/oak/stanford/groups/akundaje/ziwei75/african-omics/data/processed/%s/nonpeak_seq.npz"%s)
+            sample_train_nonpeaks_seqs = sample_train_nonpeaks_seqs[nonpeak_region_keep_idx]
+            sample_train_nonpeaks_cts = get_cts(nonpeak_regions, cts_bw, outputlen)
+            sample_train_nonpeaks_coords = get_coords(nonpeak_regions, peaks_bool=0)
+            if max_jitter == 0:
+                center = sample_train_nonpeaks_seqs.shape[1]//2
+                sample_train_nonpeaks_seqs = sample_train_nonpeaks_seqs[:,center-inputlen//2:center+inputlen//2,:]
+            train_nonpeaks_seqs += [sample_train_nonpeaks_seqs]
+            train_nonpeaks_cts += [sample_train_nonpeaks_cts]
+            train_nonpeaks_coords += [sample_train_nonpeaks_coords]
+        else:
+            train_nonpeaks_seqs = None
+            train_nonpeaks_cts = None
+            train_nonpeaks_coords = None
+       
+        cts_bw.close()
+        print("finish getting for " + s)
     genome.close()
+
+    train_peaks_seqs = np.transpose(train_peaks_seqs, (1,0,2,3))
+    train_peaks_cts = np.transpose(train_peaks_cts, (1,0,2))
+    train_peaks_coords = np.transpose(train_peaks_coords,(1,0,2))
+    train_peaks_seqs = np.vstack(train_peaks_seqs)
+    train_peaks_cts = np.vstack(train_peaks_cts)
+    train_peaks_coords = np.vstack(train_peaks_coords) 
+
+    if (nonpeak_regions is not None) and (nonpeak_region_keep_idx is not None):
+        train_nonpeaks_seqs = np.transpose(train_nonpeaks_seqs, (1,0,2,3))
+        train_nonpeaks_cts = np.transpose(train_nonpeaks_cts,(1,0,2))
+        train_nonpeaks_coords = np.transpose(train_nonpeaks_coords,(1,0,2))
+        train_nonpeaks_seqs = np.vstack(train_nonpeaks_seqs)
+        train_nonpeaks_cts = np.vstack(train_nonpeaks_cts)
+        train_nonpeaks_coords = np.vstack(train_nonpeaks_coords)
 
     return (train_peaks_seqs, train_peaks_cts, train_peaks_coords,
             train_nonpeaks_seqs, train_nonpeaks_cts, train_nonpeaks_coords)

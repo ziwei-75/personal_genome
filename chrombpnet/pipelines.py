@@ -5,34 +5,44 @@ import copy
 from chrombpnet.data import DefaultDataFile, get_default_data_path
 from chrombpnet.data import print_meme_motif_file
 import numpy as np
+import os
+import sys
+
+
+def get_sample_and_bigwig_list(args):
+	#vcf_folder="/oak/stanford/groups/akundaje/ziwei75/african-omics/data/genotype/individual_vcf_filtered/"
+	bigwig_folder="/oak/stanford/groups/akundaje/ziwei75/african-omics/data/processed/"
+	samples = open(args.sample_list,"r").read().strip().split("\n")
+	sample_list = [s.split("/")[-2] for s in samples]
+	bigwig_list = []
+	for s in sample_list:
+		bigwig_list += [bigwig_folder + s + '/' + s + '_unstranded.bw']
+	print(sample_list)
+	print(bigwig_list)
+	return sample_list, bigwig_list
 
 def chrombpnet_train_pipeline(args):
-
+	sample_list, bigwig_list = get_sample_and_bigwig_list(args)
+	print(sample_list,bigwig_list)
+	args.sample_list = sample_list
+	args.bigwig_list = bigwig_list
 	if args.file_prefix:
 		fpx = args.file_prefix+"_"
 	else:
 		fpx = ""
 		
 	# Shift bam and convert to bigwig
-	import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig	
-	if args.input_bigwig_file is None:
-		args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
-		args.plus_shift = None
-		args.minus_shift = None
-		reads_to_bigwig.main(args)
-		args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
-	else:
-		args.bigwig = args.input_bigwig_file
+	# import chrombpnet.helpers.preprocessing.reads_to_bigwig as reads_to_bigwig	
+	# if args.input_bigwig_file is None:
+	# 	args.output_prefix = os.path.join(args.output_dir,"auxiliary/{}data".format(fpx))
+	# 	args.plus_shift = None
+	# 	args.minus_shift = None
+	# 	reads_to_bigwig.main(args)
+	# 	args.bigwig = os.path.join(args.output_dir,"auxiliary/{}data_unstranded.bw".format(fpx))
+	# else:
+	# 	args.bigwig = args.input_bigwig_file
 	
 	# QC bigwig
-	import chrombpnet.helpers.preprocessing.analysis.build_pwm_from_bigwig as build_pwm_from_bigwig	
-	args.output_prefix = os.path.join(args.output_dir,"evaluation/{}bw_shift_qc".format(fpx))
-	folds = json.load(open(args.chr_fold_path))
-	assert(len(folds["valid"]) > 0) # validation list of chromosomes is empty
-	args.chr = folds["valid"][0]
-	args.pwm_width=24
-	build_pwm_from_bigwig.main(args)
-
 	# fetch hyperparameters for training
 	import chrombpnet.helpers.hyperparameters.find_chrombpnet_hyperparams as find_chrombpnet_hyperparams
 	args_copy = copy.deepcopy(args)
